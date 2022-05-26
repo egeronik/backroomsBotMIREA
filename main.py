@@ -72,7 +72,7 @@ async def new_form(message: types.Message):
 
 
 @dp.message_handler(Text(equals="Моя анкета"))
-async def display_user_form(message: types.Message):
+async def display_own_user_form(message: types.Message):
     # TODO Сделать более карасивый вывод анкеты и написать фукнцию генерации текста
     ans_text = user_data[message.from_user.id].name + " курс " + user_data[message.from_user.id].course + "\n"
     ans_text = ans_text + user_data[message.from_user.id].description
@@ -123,6 +123,16 @@ async def get_photo(message: types.Message):
         await message.answer("Выбере интересные тебе темы общения", reply_markup=inline_keyboard)
 
 
+@dp.message_handler(Text(equals=["Не хочу"]))
+async def get_no_photo(message: types.Message):
+    if user_data[message.from_user.id].state == userState.waiting_photo:
+        user_data[message.from_user.id].image = ""
+        user_data[message.from_user.id].state = userState.waiting_tags
+        inline_keyboard = InlineKeyboardMarkup()
+        inline_keyboard.add(*make_tag_buttons([]))
+        await message.answer("Выбере интересные тебе темы общения", reply_markup=inline_keyboard)
+
+
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith('btn'))
 async def process_button_callback(callback_query: types.CallbackQuery):
     code = int(callback_query.data[3:])
@@ -146,6 +156,9 @@ async def process_button_callback(callback_query: types.CallbackQuery):
     await callback_query.message.answer("Poggers")
     await callback_query.answer()
 
+async def print_next_from():
+    # TODO Получить анкету из БД
+    pass
 
 @dp.message_handler()
 async def not_reserved(message: types.Message):
@@ -162,7 +175,9 @@ async def not_reserved(message: types.Message):
     elif user_data[message.from_user.id].state == userState.waiting_description:
         user_data[message.from_user.id].description = message.text
         user_data[message.from_user.id].state = userState.waiting_photo
-        await message.answer("Отправь свою фотографию")
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=True)
+        keyboard.add("Не хочу")
+        await message.answer("Отправь свою фотографию",reply_markup=keyboard)
     else:
         await message.answer("Моя твоя не понимать :(\nИспользуй кнопки")
 
