@@ -22,7 +22,8 @@ class User:
     gender = 1  # 1 - male 0 - female 2 - moderator #INTEGER
     companion_gender = 0  # 0 - female 1 - male 2 - doesn`t matter #INTEGER
     course = 0  # INTEGER
-    listTags = [id, 'Sport', 'Music', 'Anime', 'searchSoulMate', 'Books']  # list
+    # the user id must necessarily go first and then there are already 5 tags
+    listTags = [id, 'Sport', 'Music', 'Anime', 'searchSoulMate', 'Books']
     idLiked = 2  # INTEGER
     idViewed = 3  # INTEGER
     image = ""  # TEXT
@@ -50,18 +51,17 @@ conn = sqlite3.connect('UsersDbManager.db')
 cur = conn.cursor()
 
 
-# Checking the connection to the database
-def sql_fetch():
-    try:
-        conn
-
-    except Error:
-
-        print(Error)
-
-
 class DbManager:
     __metaclass__ = ABCMeta
+
+    # Checking the connection to the database
+    def __init__(self):
+        try:
+            conn
+
+        except Error:
+
+            print(Error)
 
     @abstractmethod
     def sql_fetch(self):
@@ -185,7 +185,7 @@ class likedUsers(DbManager):
 
     # Deleting a tuple of liked by id
     def sql_delete(self):
-        cur.execute('DELETE FROM LIKED WHERE id = ?', id)
+        cur.execute('DELETE FROM LIKED WHERE id = $id', id)
 
         conn.commit()
 
@@ -220,7 +220,7 @@ class viewedUsers(DbManager):
 
     # Deleting a tuple of viewed by id
     def sql_delete(self):
-        cur.execute('DELETE FROM VIEWED WHERE id = ?', id)
+        cur.execute('DELETE FROM VIEWED WHERE id = $id', id)
 
         conn.commit()
 
