@@ -288,7 +288,13 @@ viewed_users_manager.sql_parse_all()
 
 
 def is_viable_user(requestor_tags, target_id):
-    #TODO Проверка на гендер
+    """
+    checks if user is viable to certain user
+    :param requestor_tags:
+    :param target_id:
+    :return:
+    """
+    # TODO Проверка на гендер
     if requestor_tags[0] == target_id:
         return False
     viewed = viewed_users_manager.sql_select(requestor_tags[0])
@@ -303,6 +309,12 @@ def is_viable_user(requestor_tags, target_id):
 
 
 def get_random_user(requestor_id):
+    """
+    Finds a new random user
+    :returns User
+    :param requestor_id:
+    :return:
+    """
     requestor_tags = user_tags_manager.sql_select(requestor_id)
     requestor_tags = list(requestor_tags)
 
@@ -322,14 +334,29 @@ def get_random_user(requestor_id):
 
 
 def get_likes(requestor_id):
+    """
+    Gets list of likes for requestor
+    :param requestor_id:
+    :return:
+    """
     return liked_users_manager.sql_select(requestor_id)
 
 
 def like_user(requestor_id, target_id):
+    """
+    Adds user to liked
+    :param requestor_id:
+    :param target_id:
+    """
     liked_users_manager.sql_insert(requestor_id, target_id)
 
 
 def get_user(user_id):
+    """
+    Finds user by id
+    :param user_id:
+    :return:
+    """
     tmp_usr = all_users_manager.sql_select(user_id)
     tmp_tags = user_tags_manager.sql_select(user_id)
     if tmp_usr is None:
@@ -342,11 +369,13 @@ def get_user(user_id):
     return tmp
 
 
-
 def add_user(user: User):
+    """
+    Add's user to all needed databases
+    :param user:
+    """
     all_users_manager.sql_insert(user)
     user_tags_manager.sql_insert(user.id, user.listTags)
-
 
 # allTagsList = ["Аниме культура", "Компьютерные игры", "Настольные игры", "Косплей/Ролеплей", "Сериалы",
 #                "Фильмы", "Книги", "Программирование", "Рисование", "Дизайн", "Политика", "Свидание вслепую",
@@ -357,5 +386,3 @@ def add_user(user: User):
 # add_user(User(739, "Леха", "Vkusniy", 0, 1, 4, ["Косплей/Ролеплей", "Сериалы", "Фильмы", "Фильмы"], ""))
 # add_user(User(712, "Петя", "Vkusniy", 0, 1, 4, ["Фильмы", "Проведение времени в душевной компании", "Nothin"], ""))
 # add_user(User(75123, "Вася", "Vkusniy", 0, 1, 4, ["Фильмы", "Создание контента", "Nothin"], ""))
-
-

@@ -43,6 +43,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 def make_tag_buttons(usedTagList):
+    """
+    Generates an list of buttons based on used buttons
+    :param usedTagList:
+    :return:
+    """
     ans = []
     for i in range(len(allTagsList)):
         if not allTagsList[i] in usedTagList:
@@ -52,6 +57,11 @@ def make_tag_buttons(usedTagList):
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
+    """
+    Sends a welcome message to a new user
+    :param message:
+    :return:
+    """
     if UsersDbManager.get_user(message.from_user.id) is not None:
         user_data[message.from_user.id] = UsersDbManager.get_user(message.from_user.id)
         user_data[message.from_user.id].state = userState.viewing_forms
@@ -68,6 +78,11 @@ async def send_welcome(message: types.Message):
 
 @dp.message_handler(Text(equals="Новая анкета"))
 async def new_form(message: types.Message):
+    """
+    New form first message
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -79,6 +94,11 @@ async def new_form(message: types.Message):
 
 @dp.message_handler(Text(equals="Моя анкета"))
 async def display_own_user_form(message: types.Message):
+    """
+    Displaying user form
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -86,6 +106,12 @@ async def display_own_user_form(message: types.Message):
 
 
 async def display_form(message: types.Message, form_id, reply_markup=None):
+    """
+    Displays a form for a user by id with custom keyboard
+    :param message:
+    :param form_id:
+    :param reply_markup:
+    """
     # TODO Сделать более карасивый вывод анкеты и написать фукнцию генерации текста
     form = UsersDbManager.get_user(form_id)
     ans_text = str(form.name) + " курс " + str(form.course) + "\n"
@@ -100,6 +126,11 @@ async def display_form(message: types.Message, form_id, reply_markup=None):
 
 @dp.message_handler(Text(equals=["Парень", "Девушка"]))
 async def get_gender(message: types.Message):
+    """
+    Requests a gender from user
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -116,6 +147,11 @@ async def get_gender(message: types.Message):
 
 @dp.message_handler(Text(equals=["Парни", "Девушки", "Без разницы"]))
 async def get_companion_gender(message: types.Message):
+    """
+    Requests a companion gender from user
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -132,6 +168,11 @@ async def get_companion_gender(message: types.Message):
 
 @dp.message_handler(Text(equals=["1", "2", "3", "4"]))
 async def get_course(message: types.Message):
+    """
+    Requests a course from user
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -142,6 +183,11 @@ async def get_course(message: types.Message):
 
 @dp.message_handler(content_types=['photo'])
 async def get_photo(message: types.Message):
+    """
+    Requests a photo from user
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -155,6 +201,11 @@ async def get_photo(message: types.Message):
 
 @dp.message_handler(Text(equals=["Не хочу"]))
 async def get_no_photo(message: types.Message):
+    """
+    Continues registration without photo
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -168,6 +219,11 @@ async def get_no_photo(message: types.Message):
 
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith('btn'))
 async def process_button_callback(callback_query: types.CallbackQuery):
+    """
+    Raction for button press
+    :param callback_query:
+    :return:
+    """
     if callback_query.from_user.id not in user_data:
         await send_welcome(callback_query.message)
         return
@@ -190,6 +246,11 @@ async def process_button_callback(callback_query: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith("tagend"))
 async def process_button_callback(callback_query: types.CallbackQuery):
+    """
+    Reaction to inline button press
+    :param callback_query:
+    :return:
+    """
     if callback_query.from_user.id not in user_data:
         await send_welcome(callback_query.message)
         return
@@ -199,6 +260,11 @@ async def process_button_callback(callback_query: types.CallbackQuery):
 
 
 async def print_next_from(message: types.Message):
+    """
+    Function what prints next requested form
+    :param message:
+    :return:
+    """
     usr = UsersDbManager.get_random_user(message.from_user.id)
     if usr is None:
         await message.answer(text="Анекты закончились :(")
@@ -211,6 +277,11 @@ async def print_next_from(message: types.Message):
 
 @dp.message_handler(Text(equals=["Нравится", "Следующая анкета"]))
 async def get_next(message: types.Message):
+    """
+    Reaction for next form request
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
@@ -219,6 +290,10 @@ async def get_next(message: types.Message):
 
 @dp.message_handler(Text(equals=["Беседы"]))
 async def get_talks(message: types.Message):
+    """
+    Prints all thematic talks
+    :param message:
+    """
     ans = ""
     keys = list(group_invites.keys())
     data = list(group_invites.values())
@@ -230,10 +305,14 @@ async def get_talks(message: types.Message):
 
 @dp.message_handler()
 async def not_reserved(message: types.Message):
+    """
+    Reaction for any uncategorized data
+    :param message:
+    :return:
+    """
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
-    # TODO Имплементировать БД
     if user_data[message.from_user.id].state == userState.waiting_name:
         user_data[message.from_user.id].name = message.text
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
