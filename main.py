@@ -3,6 +3,7 @@ import enum
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.dispatcher.filters import Text
+import UsersDbManager
 
 
 class userState(enum.Enum):
@@ -16,17 +17,6 @@ class userState(enum.Enum):
     waiting_description = 7
     waiting_tags = 8
     viewing_forms = 9
-
-
-class user:
-    ID = 0  # INTEGER
-    name = ""  # TEXT
-    description = ""  # TEXT
-    gender = 1  # 1-male 0-female 2-moderator # INTEGER
-    companion_gender = 0  # 1-male 0-female 2-don't matter INTEGER
-    course = 0  # INTEGER
-    tag_list = []  # Список тегов ["Дружба" , "Музыка"]
-    image = ""  # TEXT
 
 
 max_tag_number = 5
@@ -55,17 +45,26 @@ def make_tag_buttons(usedTagList):
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
+    if UsersDbManager.get_user(message.from_user.id) is not None:
+        user_data[message.from_user.id] = UsersDbManager.get_user(message.from_user.id)
+        user_data[message.from_user.id].state = userState.viewing_forms
+        await print_next_from(message)
+        return
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ["Новая анкета"]
     keyboard.add(*buttons)
+    user_data[message.from_user.id] = UsersDbManager.User
+    user_data[message.from_user.id].id = message.from_user.id
+    user_data[message.from_user.id].state = userState.waiting_gender
     await message.answer("Привет, я бот для знакомств РТУ МИРЭА\nСоздаем новую анкету ?", reply_markup=keyboard)
 
 
 @dp.message_handler(Text(equals="Новая анкета"))
 async def new_form(message: types.Message):
-    # TODO Имплементировать БД
-    user_data[message.from_user.id] = user
-    user_data[message.from_user.id].state = userState.waiting_gender
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
+
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     keyboard.add(*["Парень", "Девушка"])
     await message.answer("Кто ты ?", reply_markup=keyboard)
@@ -73,15 +72,29 @@ async def new_form(message: types.Message):
 
 @dp.message_handler(Text(equals="Моя анкета"))
 async def display_own_user_form(message: types.Message):
-    # TODO Сделать более карасивый вывод анкеты и написать фукнцию генерации текста
-    ans_text = user_data[message.from_user.id].name + " курс " + user_data[message.from_user.id].course + "\n"
-    ans_text = ans_text + user_data[message.from_user.id].description
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
+    await display_form(message, user_data[message.from_user.id].id)
 
-    await message.answer_photo(caption=ans_text, photo=user_data[message.from_user.id].image)
+
+async def display_form(message: types.Message, form_id, reply_markup=None):
+    # TODO Сделать более карасивый вывод анкеты и написать фукнцию генерации текста
+    form = UsersDbManager.get_user(form_id)
+    ans_text = str(form.name) + " курс " + str(form.course) + "\n"
+    ans_text = ans_text + form.description
+
+    if form.image != "":
+        await message.answer_photo(caption=ans_text, photo=form.image, reply_markup=reply_markup)
+    else:
+        await message.answer(text=ans_text, reply_markup=reply_markup)
 
 
 @dp.message_handler(Text(equals=["Парень", "Девушка"]))
 async def get_gender(message: types.Message):
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
     if user_data[message.from_user.id].state == userState.waiting_gender:
         if message.text is "Парень":
             user_data[message.from_user.id].gender = 1
@@ -95,6 +108,9 @@ async def get_gender(message: types.Message):
 
 @dp.message_handler(Text(equals=["Парни", "Девушки", "Без разницы"]))
 async def get_companion_gender(message: types.Message):
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
     if user_data[message.from_user.id].state == userState.waiting_companion_gender:
         if message.text is "Парни":
             user_data[message.from_user.id].gender = 1
@@ -108,6 +124,9 @@ async def get_companion_gender(message: types.Message):
 
 @dp.message_handler(Text(equals=["1", "2", "3", "4"]))
 async def get_course(message: types.Message):
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
     user_data[message.from_user.id].course = message.text
     user_data[message.from_user.id].state = userState.waiting_description
     await message.answer("Расскажи о себе")
@@ -115,6 +134,9 @@ async def get_course(message: types.Message):
 
 @dp.message_handler(content_types=['photo'])
 async def get_photo(message: types.Message):
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
     if user_data[message.from_user.id].state == userState.waiting_photo:
         user_data[message.from_user.id].image = message.photo[0].file_id
         user_data[message.from_user.id].state = userState.waiting_tags
@@ -125,6 +147,9 @@ async def get_photo(message: types.Message):
 
 @dp.message_handler(Text(equals=["Не хочу"]))
 async def get_no_photo(message: types.Message):
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
     if user_data[message.from_user.id].state == userState.waiting_photo:
         user_data[message.from_user.id].image = ""
         user_data[message.from_user.id].state = userState.waiting_tags
@@ -135,15 +160,22 @@ async def get_no_photo(message: types.Message):
 
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith('btn'))
 async def process_button_callback(callback_query: types.CallbackQuery):
+    if callback_query.from_user.id not in user_data:
+        await send_welcome(callback_query.message)
+        return
+    if user_data[callback_query.from_user.id].state != userState.waiting_tags:
+        return
     code = int(callback_query.data[3:])
-    user_data[callback_query.from_user.id].tag_list.append(str(allTagsList[code]))
+    user_data[callback_query.from_user.id].listTags.append(str(allTagsList[code]))
     inline_keyboard = InlineKeyboardMarkup()
-    inline_keyboard.add(*make_tag_buttons(user_data[callback_query.from_user.id].tag_list))
+    inline_keyboard.add(*make_tag_buttons(user_data[callback_query.from_user.id].listTags))
     inline_keyboard.add(InlineKeyboardButton("Я выбрал достаточо тем", callback_data="tagend"))
     await callback_query.message.edit_reply_markup(reply_markup=inline_keyboard)
-    if len(user_data[callback_query.from_user.id].tag_list >= max_tag_number):
+    print(user_data[callback_query.from_user.id].listTags)
+    if len(user_data[callback_query.from_user.id].listTags) >= max_tag_number:
         user_data[callback_query.from_user.id].state = userState.viewing_forms
-        # TODO Вывести рандомную анкету
+        UsersDbManager.add_user(user_data[callback_query.from_user.id])
+        await print_next_from(callback_query.message)
         await callback_query.answer("")
     else:
         await callback_query.answer()
@@ -151,17 +183,37 @@ async def process_button_callback(callback_query: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith("tagend"))
 async def process_button_callback(callback_query: types.CallbackQuery):
+    if callback_query.from_user.id not in user_data:
+        await send_welcome(callback_query.message)
+        return
+    UsersDbManager.add_user(user_data[callback_query.from_user.id])
     user_data[callback_query.from_user.id].state = userState.viewing_forms
-    # TODO Вывести рандомную анкету
-    await callback_query.message.answer("Poggers")
-    await callback_query.answer()
+    await print_next_from(callback_query.message)
 
-async def print_next_from():
-    # TODO Получить анкету из БД
-    pass
+
+async def print_next_from(callback_query):
+    usr = UsersDbManager.get_random_user(callback_query.from_user.id)
+    if usr is None:
+        await callback_query.answer(text="Анекты закончились :(")
+        return
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    keyboard.add(*["Нравиться", "Следующая анкета", "Моя анкета"])
+    await display_form(callback_query, usr.id, reply_markup=keyboard)
+
+
+@dp.message_handler(Text(equals=["Нравиться", "Следующая анкета"]))
+async def get_next(message: types.Message):
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
+    await print_next_from(message)
+
 
 @dp.message_handler()
 async def not_reserved(message: types.Message):
+    if message.from_user.id not in user_data:
+        await send_welcome(message)
+        return
     # TODO Имплементировать БД
     if user_data[message.from_user.id].state == userState.waiting_name:
         user_data[message.from_user.id].name = message.text
@@ -175,9 +227,9 @@ async def not_reserved(message: types.Message):
     elif user_data[message.from_user.id].state == userState.waiting_description:
         user_data[message.from_user.id].description = message.text
         user_data[message.from_user.id].state = userState.waiting_photo
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=True)
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         keyboard.add("Не хочу")
-        await message.answer("Отправь свою фотографию",reply_markup=keyboard)
+        await message.answer("Отправь свою фотографию", reply_markup=keyboard)
     else:
         await message.answer("Моя твоя не понимать :(\nИспользуй кнопки")
 
