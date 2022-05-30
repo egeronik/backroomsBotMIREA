@@ -315,7 +315,7 @@ def get_random_user(requestor_id):
         try_count += 1
         usr = all_users_manager.cur.execute(
             "SELECT * FROM " + all_users_manager.dbname + " ORDER BY RANDOM() LIMIT 1;").fetchone()
-        if try_count > 100:
+        if try_count > 1000:
             return None
     viewed_users_manager.sql_insert(requestor_id, usr[0])
     return get_user(usr[0])
@@ -352,7 +352,7 @@ def add_user(user: User):
 #                "Фильмы", "Книги", "Программирование", "Рисование", "Дизайн", "Политика", "Свидание вслепую",
 #                "Тусовки", "Музыка", "Спорт", "Проведение времени в душевной компании", "Поиск второй половинки",
 #                "Дружба", "Создание контента"]
-#
+
 # add_user(User(3498, "Саня", "Vkusniy", 0, 1, 4, ["Аниме культура", "Компьютерные игры", "Настольные игры", "Фильмы"], ""))
 # add_user(User(739, "Леха", "Vkusniy", 0, 1, 4, ["Косплей/Ролеплей", "Сериалы", "Фильмы", "Фильмы"], ""))
 # add_user(User(712, "Петя", "Vkusniy", 0, 1, 4, ["Фильмы", "Проведение времени в душевной компании", "Nothin"], ""))

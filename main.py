@@ -26,6 +26,13 @@ allTagsList = ["Аниме культура", "Компьютерные игры
                "Тусовки", "Музыка", "Спорт", "Проведение времени в душевной компании", "Поиск второй половинки",
                "Дружба", "Создание контента"]
 
+group_invites = {"Аниме культура": "https://t.me/+rEJ77SdNWqoxODZi",
+                 "Компьютерные игры": "https://t.me/+eMoRn4jA_CBlZWJi",
+                 "Настольные игры": "https://t.me/+Qwvxzi9vhTMyMWYy",
+                 "Тусовки": "https://t.me/+oryhq3Wx9Eg2MWMy",
+                 "Создание контента": "https://t.me/+bBxZILP4Ems4NDg6",
+                 "Политика": "https://t.me/+4iSGUz7K9rQyZGNi"}
+
 user_data = {}
 
 bot = Bot(token="5145205790:AAF3rNui4DLhSKMpq42LCpmqwfAmSbMzU44")
@@ -85,9 +92,10 @@ async def display_form(message: types.Message, form_id, reply_markup=None):
     ans_text = ans_text + form.description
 
     if form.image != "":
-        await message.answer_photo(caption=ans_text, photo=form.image, reply_markup=reply_markup)
+        await bot.send_photo(chat_id=message.from_user.id, caption=ans_text, photo=form.image,
+                             reply_markup=reply_markup)
     else:
-        await message.answer(text=ans_text, reply_markup=reply_markup)
+        await bot.send_message(chat_id=message.from_user.id, text=ans_text, reply_markup=reply_markup)
 
 
 @dp.message_handler(Text(equals=["Парень", "Девушка"]))
@@ -175,8 +183,7 @@ async def process_button_callback(callback_query: types.CallbackQuery):
     if len(user_data[callback_query.from_user.id].listTags) >= max_tag_number:
         user_data[callback_query.from_user.id].state = userState.viewing_forms
         UsersDbManager.add_user(user_data[callback_query.from_user.id])
-        await print_next_from(callback_query.message)
-        await callback_query.answer("")
+        await print_next_from(callback_query)
     else:
         await callback_query.answer()
 
@@ -188,25 +195,37 @@ async def process_button_callback(callback_query: types.CallbackQuery):
         return
     UsersDbManager.add_user(user_data[callback_query.from_user.id])
     user_data[callback_query.from_user.id].state = userState.viewing_forms
-    await print_next_from(callback_query.message)
+    await print_next_from(callback_query)
 
 
-async def print_next_from(callback_query):
-    usr = UsersDbManager.get_random_user(callback_query.from_user.id)
+async def print_next_from(message: types.Message):
+    usr = UsersDbManager.get_random_user(message.from_user.id)
     if usr is None:
-        await callback_query.answer(text="Анекты закончились :(")
+        await message.answer(text="Анекты закончились :(")
         return
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    keyboard.add(*["Нравиться", "Следующая анкета", "Моя анкета"])
-    await display_form(callback_query, usr.id, reply_markup=keyboard)
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(*["Моя анкета", "Беседы"])
+    keyboard.add(*["Нравится", "Следующая анкета"])
+    await display_form(message, usr.id, reply_markup=keyboard)
 
 
-@dp.message_handler(Text(equals=["Нравиться", "Следующая анкета"]))
+@dp.message_handler(Text(equals=["Нравится", "Следующая анкета"]))
 async def get_next(message: types.Message):
     if message.from_user.id not in user_data:
         await send_welcome(message)
         return
     await print_next_from(message)
+
+
+@dp.message_handler(Text(equals=["Беседы"]))
+async def get_talks(message: types.Message):
+    ans = ""
+    keys = list(group_invites.keys())
+    data = list(group_invites.values())
+
+    for i in range(len(group_invites)):
+        ans += keys[i] + ":" + data[i] + "\n"
+    await message.answer(ans)
 
 
 @dp.message_handler()
