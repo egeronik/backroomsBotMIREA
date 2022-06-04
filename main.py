@@ -35,7 +35,7 @@ group_invites = {"Аниме культура": "https://t.me/+rEJ77SdNWqoxODZi"
 
 user_data = {}
 
-bot = Bot(token="5145205790:AAF3rNui4DLhSKMpq42LCpmqwfAmSbMzU44")
+bot = Bot(token="5576652040:AAF4W9oLFlc3wx8YI8yQsUWyP0oTYKNNeLE")
 
 dp = Dispatcher(bot)
 
